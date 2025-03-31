@@ -1,5 +1,6 @@
 #include <linux/limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <readline/readline.h>
@@ -7,15 +8,35 @@
 #include <sys/wait.h>
 #include <dirent.h>
 
-#define MAX_TOKENS 10
+#define MAX_TOKENS 100
 
+const int CHAR_SIZE = sizeof(char);
+
+void writeCommand(char *tokenList[MAX_TOKENS], int tokenCount, int inputSize)
+{
+    if(!tokenList[1])
+        return;
+        
+    FILE *fileToWrite = NULL;
+    fileToWrite = fopen(tokenList[1], "w");
+    
+    char *text = (char*)malloc(inputSize);
+    
+    for(int i = 2; i < tokenCount; i++)
+    {
+        strcat(text, tokenList[i]);
+    }
+    
+    fprintf(fileToWrite, "%s", text);
+    
+    fclose(fileToWrite);
+}
 void dogCommand(char *tokenList[MAX_TOKENS])
 {
     if(!tokenList[1])
         return;
 
     FILE *fileToDog = NULL;
-
     fileToDog = fopen(tokenList[1], "r");
 
     if(!fileToDog)
@@ -24,11 +45,14 @@ void dogCommand(char *tokenList[MAX_TOKENS])
         return;
     }
 
-    char fileToBeRead[100];
-    while(fgets(fileToBeRead, 100, fileToDog))
+    char fileToBeRead[500];
+    
+    while(fgets(fileToBeRead, 500, fileToDog))
     {
         printf("%s", fileToBeRead);
     }
+    
+    printf("\n");
 
     fclose(fileToDog);
 }
@@ -64,7 +88,8 @@ void checkCommands(char *input)
     }
 
     tokenList[i] = NULL;
-
+    int inputSize = sizeof(input);
+    
     // Strcmp returns 0 if the two strings are equal
     if(!strcmp(tokenList[0], "say"))
     {
@@ -77,6 +102,10 @@ void checkCommands(char *input)
     else if(!strcmp(tokenList[0], "dog"))
     {
         dogCommand(tokenList);
+    }
+    else if(!strcmp(tokenList[0], "write"))
+    {
+        writeCommand(tokenList, i, inputSize);
     }
 }
 
@@ -92,15 +121,16 @@ void printDirectory()
 int main()
 {
     FILE *historyFile = NULL;
-    historyFile = fopen("history.txt", "w");
+    historyFile = fopen("history.txt", "a");
 
-    char input[50];
+    char input[500];
 
     while(strcmp(input, "exit"))
     {
         printDirectory();
         fgets(input, sizeof(input), stdin);
         input[strcspn(input, "\n")] = '\0';
+        fprintf(historyFile, "%s\n", input);
 
         checkCommands(input);
     }
