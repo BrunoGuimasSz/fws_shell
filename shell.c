@@ -10,6 +10,31 @@
 
 #define MAX_TOKENS 100
 
+void lsCommand(char *tokenList[MAX_TOKENS])
+{
+    DIR *directory;
+
+    struct dirent *directoryStruct;
+
+    if(!tokenList[1])
+    {
+        directory = opendir(".");
+    }
+    else
+    {
+        directory = opendir(tokenList[1]);
+    }
+
+    if(directory)
+    {
+        while((directoryStruct = readdir(directory)) != NULL)
+        {
+            printf("%s\n", directoryStruct->d_name);
+        }
+    }
+
+    closedir(directory);
+}
 void writeCommand(char *tokenList[MAX_TOKENS], int tokenCount)
 {
     if(!tokenList[1])
@@ -73,7 +98,7 @@ void sayCommand(char *tokenList[MAX_TOKENS], int tokenCount)
     printf("\n");
 }
 
-void checkCommands(char *input)
+void commandHandler(char *input)
 {
     char *token = strtok(input, " ");
     char *tokenList[MAX_TOKENS];
@@ -97,27 +122,40 @@ void checkCommands(char *input)
         dogCommand(tokenList);
     else if(!strcmp(tokenList[0], "write"))
         writeCommand(tokenList, i);
+    else if(!strcmp(tokenList[0], "ls"))
+        lsCommand(tokenList);
+    else if(!strcmp(tokenList[0], "exit"))
+            ;
     else
         printf("Error: %s: command not found\n", tokenList[0]);
 }
 
-void printUserAndDirectory()
+char *getCurrentPath()
+{
+    char cwd[PATH_MAX];
+    int cwdSize = sizeof(cwd);
+
+    char *currentPath = getcwd(cwd, cwdSize);
+
+    return currentPath;
+}
+
+char *getUserName()
 {
     char *userName = getlogin();
 
-    char cwd[PATH_MAX];
-    const int cwdSize = sizeof(cwd);
+    return userName;
+}
+void printUserAndDirectory()
+{
+    char *userName = getUserName();
+    char *currentPath = getCurrentPath(); 
 
-    char *currentPath= getcwd(cwd, cwdSize);
-
-    printf("[%s@%s]$ ", userName, currentPath);
+    printf("[%s@%s]", userName, currentPath);
 }
 
-int main()
+void inputLoop(FILE *historyFile)
 {
-    FILE *historyFile = NULL;
-    historyFile = fopen("history.txt", "a");
-
     char input[500];
     int inputSize = sizeof(input);
 
@@ -131,10 +169,18 @@ int main()
         fprintf(historyFile, "%s\n", input);
         fflush(historyFile);
 
-        checkCommands(input);
+        commandHandler(input);
     }
+}
+
+int main()
+{
+    FILE *historyFile = NULL;
+    historyFile = fopen("history.txt", "a");
+
+    inputLoop(historyFile);
 
     fclose(historyFile);
 
-    return 0;
+    return 1;
 }
